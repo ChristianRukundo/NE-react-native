@@ -25,7 +25,7 @@ const ExpenseListItemComponent: React.FC<ExpenseListItemProps> = ({
 
   const formattedAmount = parseFloat(expense.amount).toLocaleString("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "RWF",
   });
 
   const formattedDate = new Date(expense.createdAt).toLocaleDateString(
