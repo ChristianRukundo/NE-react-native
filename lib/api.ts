@@ -1,175 +1,139 @@
-import axios from "axios";
+import type { User, Expense, CreateExpenseData, LoginData } from "./types";
 
-const MOCK_API_BASE_URL = "https://681cce38f74de1d219addd1b.mockapi.io/api/v1";
+const API_BASE_URL = "https://67ac71475853dfff53dab929.mockapi.io/api/v1";
 
-const api = axios.create({
-  baseURL: MOCK_API_BASE_URL,
-  timeout: 10000,
-});
+// Add timeout and better error handling
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeout = 10000
+) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-export const vehicleApi = {
-  getAll: async () => {
-    console.log(`GET ${MOCK_API_BASE_URL}/vehicles`);
-    const response = await api.get("/vehicles");
-    return { data: response.data };
-  },
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+    clearTimeout(timeoutId);
 
-  getById: async (id: string) => {
-    console.log(`GET ${MOCK_API_BASE_URL}/vehicles/${id}`);
-    const response = await api.get(`/vehicles/${id}`);
-    return { data: response.data };
-  },
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
 
-  create: async (data: any) => {
-    console.log(`POST ${MOCK_API_BASE_URL}/vehicles`, data);
-    const response = await api.post("/vehicles", data);
-    return { data: response.data };
-  },
-
-  update: async (id: string, data: any) => {
-    console.log(`PUT ${MOCK_API_BASE_URL}/vehicles/${id}`, data);
-    const response = await api.put(`/vehicles/${id}`, data);
-    return { data: response.data };
-  },
-
-  delete: async (id: string) => {
-    console.log(`DELETE ${MOCK_API_BASE_URL}/vehicles/${id}`);
-    const response = await api.delete(`/vehicles/${id}`);
-    return { data: { success: true, deletedItem: response.data } };
-  },
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("Request timed out. Please check your connection.");
+      }
+      throw new Error(`Network error: ${error.message}`);
+    }
+    throw new Error("An unexpected error occurred");
+  }
 };
 
-export const parkingSlotApi = {
-  getAll: async () => {
-    console.log(`GET ${MOCK_API_BASE_URL}/parkingSlot`);
-    const response = await api.get("/parkingSlot");
-    return { data: response.data };
-  },
-
-  getById: async (id: string) => {
-    console.log(`GET ${MOCK_API_BASE_URL}/parkingSlot/${id}`);
-    const response = await api.get(`/parkingSlot/${id}`);
-    return { data: response.data };
-  },
-
-  create: async (data: any) => {
-    console.log(`POST ${MOCK_API_BASE_URL}/parkingSlot`, data);
-    const response = await api.post("/parkingSlot", data);
-    return { data: response.data };
-  },
-
-  update: async (id: string, data: any) => {
-    console.log(`PUT ${MOCK_API_BASE_URL}/parkingSlot/${id}`, data);
-    const response = await api.put(`/parkingSlot/${id}`, data);
-    return { data: response.data };
-  },
-
-  delete: async (id: string) => {
-    console.log(`DELETE ${MOCK_API_BASE_URL}/parkingSlot/${id}`);
-    const response = await api.delete(`/parkingSlot/${id}`);
-    return { data: { success: true, deletedItem: response.data } };
-  },
-};
-
-export const profileApi = {
-  get: async () => {
-    const profileId = "1";
-    console.log(`GET ${MOCK_API_BASE_URL}/profile/${profileId}`);
+export const financeApi = {
+  // Auth endpoints
+  async login(credentials: LoginData): Promise<User | null> {
     try {
-      const response = await api.get(`/profile/${profileId}`);
-      return { data: response.data };
-    } catch (error) {
-      console.warn(
-        "Failed to fetch profile, returning default mock. Ensure 'profile' resource with ID 1 exists on mockapi.io.",
-        error
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/users?username=${credentials.username}`
       );
-      return {
-        data: {
-          id: "1",
-          fullName: "Hannah Turin (Default)",
-          email: "hannah.default@example.com",
-          phoneNumber: "+1 123 456 7890",
-          address: "123 Mock Street",
-          zipCode: "10001",
-          state: "Mock State",
-        },
-      };
+      const users: User[] = await response.json();
+      const user = users.find((u) => u.username === credentials.username);
+
+      if (user && user.password === credentials.password) {
+        return user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Login error:", error);
+      throw new Error(
+        "Login failed. Please check your credentials and try again."
+      );
     }
   },
 
-  update: async (data: any) => {
-    const profileId = data.id || "1";
-    console.log(`PUT ${MOCK_API_BASE_URL}/profile/${profileId}`, data);
+  // Expense endpoints
+  async getExpenses(): Promise<Expense[]> {
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/expenses`,
+        {},
+        15000
+      ); // 15 second timeout for expenses
+      const expenses: Expense[] = await response.json();
 
-    const response = await api.put(`/profile/${profileId}`, data);
-    return { data: response.data };
+      // Sort by creation date (newest first) on the client side for better UX
+      return expenses.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    } catch (error) {
+      console.error("Get expenses error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(
+        "Failed to load expenses. Please check your connection and try again."
+      );
+    }
+  },
+
+  async getExpenseById(id: string): Promise<Expense> {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/expenses/${id}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get expense error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to load expense details. Please try again.");
+    }
+  },
+
+  async createExpense(data: CreateExpenseData): Promise<Expense> {
+    try {
+      const expenseData = {
+        ...data,
+        userId: "1", // Default user ID for now
+        createdAt: new Date().toISOString(),
+      };
+
+      const response = await fetchWithTimeout(`${API_BASE_URL}/expenses`, {
+        method: "POST",
+        body: JSON.stringify(expenseData),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.error("Create expense error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to create expense. Please try again.");
+    }
+  },
+
+  async deleteExpense(id: string): Promise<void> {
+    try {
+      await fetchWithTimeout(`${API_BASE_URL}/expenses/${id}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Delete expense error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to delete expense. Please try again.");
+    }
   },
 };
-
-export const authApi = {
-  login: async (data: { email: string; password: string }) => {
-    console.log("MOCK authApi.login called with:", data);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (
-      data.email === "hannah.turin@email.com" &&
-      data.password === "password"
-    ) {
-      return {
-        success: true,
-        message: "Login successful",
-        token: "mock-jwt-token-from-successful-login",
-        user: {
-          id: "1",
-          fullName: "Hannah Turin",
-          email: "hannah.turin@email.com",
-        },
-      };
-    } else {
-      throw {
-        response: { status: 401, data: { message: "Invalid credentials" } },
-      };
-    }
-  },
-
-  register: async (data: any) => {
-    console.log("MOCK authApi.register called with:", data);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return {
-      success: true,
-      message: "Registration successful. Please verify your phone/email.",
-    };
-  },
-
-  verifyOtp: async (data: { phone: string; otp: string }) => {
-    console.log("MOCK authApi.verifyOtp called with:", data);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (data.otp === "1234") {
-      return {
-        success: true,
-        message: "OTP verified successfully.",
-        token: "mock-jwt-token-from-otp-verification",
-        user: {
-          id: "1",
-          fullName: "Verified User",
-          email: "verified@example.com",
-        },
-      };
-    } else {
-      throw {
-        response: { status: 400, data: { message: "Invalid OTP code" } },
-      };
-    }
-  },
-
-  resendOtp: async (phone: string) => {
-    console.log("MOCK authApi.resendOtp called for phone:", phone);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      success: true,
-      message: "A new OTP has been sent.",
-    };
-  },
-};
-
-export default api;

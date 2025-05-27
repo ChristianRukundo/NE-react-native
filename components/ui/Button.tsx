@@ -10,14 +10,16 @@ import {
 } from "react-native";
 import { twMerge } from "tailwind-merge";
 import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ButtonProps extends TouchableOpacityProps {
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
-  leftIcon?: keyof typeof Feather.glyphMap;
-  rightIcon?: keyof typeof Feather.glyphMap;
+  leftIcon?: keyof typeof Feather.glyphMap | keyof typeof Ionicons.glyphMap;
+  rightIcon?: keyof typeof Feather.glyphMap | keyof typeof Ionicons.glyphMap;
   iconSize?: number;
+  iconLibrary?: "feather" | "ionicons";
   children: React.ReactNode;
   fullWidth?: boolean;
 }
@@ -29,6 +31,7 @@ const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   iconSize = 18,
+  iconLibrary = "feather",
   children,
   className,
   disabled,
@@ -36,87 +39,82 @@ const Button: React.FC<ButtonProps> = ({
   activeOpacity = 0.8,
   ...props
 }) => {
-  const themeColors = {
-    primary: "#FF6F00",
-    primaryText: "#FFFFFF",
-    secondary: "#4A5568",
-    secondaryText: "#FFFFFF",
-    outlineBorder: "#CBD5E0",
-    outlineText: "#FF6F00",
-    ghostText: "#FF6F00",
-    danger: "#E53E3E",
-    dangerText: "#FFFFFF",
-    disabledBackground: "#E2E8F0",
-    disabledText: "#A0AEC0",
-    iconDefault: "#4A5568",
-  };
-
-  const primaryColorForIcon = themeColors.primary;
-
   const getButtonStyles = () => {
-    let baseStyles = `flex-row items-center justify-center rounded-lg transition-all duration-150 ease-in-out ${
-      fullWidth ? "w-full" : ""
-    }`;
+    let baseStyles = "flex-row items-center justify-center rounded-xl";
 
+    if (fullWidth) baseStyles += " w-full";
+
+    // Size styles
     if (size === "sm") baseStyles += " py-2.5 px-4 h-10";
     else if (size === "md") baseStyles += " py-3 px-5 h-12";
     else if (size === "lg") baseStyles += " py-3.5 px-6 h-14";
 
-    if (variant === "primary") baseStyles += ` bg-[${themeColors.primary}]`;
-    else if (variant === "secondary")
-      baseStyles += ` bg-[${themeColors.secondary}]`;
-    else if (variant === "outline")
-      baseStyles += ` bg-white border border-[${themeColors.outlineBorder}]`;
-    else if (variant === "ghost") baseStyles += " bg-transparent";
-    else if (variant === "danger") baseStyles += ` bg-[${themeColors.danger}]`;
-
+    // Variant styles
     if (disabled || isLoading) {
-      if (
-        variant === "primary" ||
-        variant === "secondary" ||
-        variant === "danger"
-      ) {
-        baseStyles += ` bg-[${themeColors.disabledBackground}]`;
-      } else if (variant === "outline") {
-        baseStyles += ` border-[${themeColors.disabledBackground}] bg-gray-50`;
-      } else if (variant === "ghost") {
-      }
+      baseStyles += " bg-gray-200";
+    } else {
+      if (variant === "primary") baseStyles += " bg-orange-500";
+      else if (variant === "secondary") baseStyles += " bg-gray-600";
+      else if (variant === "outline") baseStyles += " bg-white border-2 border-orange-500";
+      else if (variant === "ghost") baseStyles += " bg-transparent";
+      else if (variant === "danger") baseStyles += " bg-red-500";
     }
+
     return baseStyles;
   };
 
   const getTextStyles = () => {
-    let textStyles = "font-dm-sans-bold";
+    let textStyles = "font-bold";
 
+    // Size styles
     if (size === "sm") textStyles += " text-sm";
     else if (size === "md") textStyles += " text-base";
     else if (size === "lg") textStyles += " text-lg";
 
+    // Color styles
     if (disabled || isLoading) {
-      textStyles += ` text-[${themeColors.disabledText}]`;
+      textStyles += " text-gray-400";
     } else {
-      if (variant === "primary")
-        textStyles += ` text-[${themeColors.primaryText}]`;
-      else if (variant === "secondary")
-        textStyles += ` text-[${themeColors.secondaryText}]`;
-      else if (variant === "outline")
-        textStyles += ` text-[${themeColors.outlineText}]`;
-      else if (variant === "ghost")
-        textStyles += ` text-[${themeColors.ghostText}]`;
-      else if (variant === "danger")
-        textStyles += ` text-[${themeColors.dangerText}]`;
+      if (variant === "primary") textStyles += " text-white";
+      else if (variant === "secondary") textStyles += " text-white";
+      else if (variant === "outline") textStyles += " text-orange-500";
+      else if (variant === "ghost") textStyles += " text-orange-500";
+      else if (variant === "danger") textStyles += " text-white";
     }
+
     return textStyles;
   };
 
   const getIconColor = () => {
-    if (disabled || isLoading) return themeColors.disabledText;
-    if (variant === "primary") return themeColors.primaryText;
-    if (variant === "secondary") return themeColors.secondaryText;
-    if (variant === "danger") return themeColors.dangerText;
-    if (variant === "outline") return themeColors.outlineText;
-    if (variant === "ghost") return themeColors.ghostText;
-    return themeColors.iconDefault;
+    if (disabled || isLoading) return "#9CA3AF";
+    if (variant === "primary") return "#FFFFFF";
+    if (variant === "secondary") return "#FFFFFF";
+    if (variant === "danger") return "#FFFFFF";
+    if (variant === "outline") return "#F97316";
+    if (variant === "ghost") return "#F97316";
+    return "#6B7280";
+  };
+
+  const renderIcon = (iconName: string, marginStyle: object) => {
+    if (iconLibrary === "ionicons") {
+      return (
+        <Ionicons
+          name={iconName as keyof typeof Ionicons.glyphMap}
+          size={iconSize}
+          color={getIconColor()}
+          style={marginStyle}
+        />
+      );
+    } else {
+      return (
+        <Feather
+          name={iconName as keyof typeof Feather.glyphMap}
+          size={iconSize}
+          color={getIconColor()}
+          style={marginStyle}
+        />
+      );
+    }
   };
 
   return (
@@ -125,41 +123,18 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
       activeOpacity={activeOpacity}
       style={[
-        styles.buttonBase,
-        variant === "primary" && !(disabled || isLoading)
-          ? styles.primaryShadow
-          : {},
-        disabled || isLoading ? styles.disabledLook : {},
+        variant === "primary" && !(disabled || isLoading) ? styles.primaryShadow : {},
+        variant === "outline" ? styles.outlineShadow : {},
       ]}
       {...props}
     >
-      {}
       {isLoading ? (
         <ActivityIndicator color={getIconColor()} size="small" />
       ) : (
         <>
-          {leftIcon && (
-            <Feather
-              name={leftIcon}
-              size={iconSize}
-              color={getIconColor()}
-              style={{ marginRight: children ? 8 : 0 }}
-            />
-          )}
-          {}
-          {typeof children === "string" ? (
-            <Text className={getTextStyles()}>{children}</Text>
-          ) : (
-            children
-          )}
-          {rightIcon && (
-            <Feather
-              name={rightIcon}
-              size={iconSize}
-              color={getIconColor()}
-              style={{ marginLeft: children ? 8 : 0 }}
-            />
-          )}
+          {leftIcon && renderIcon(leftIcon, { marginRight: children ? 8 : 0 })}
+          <Text className={getTextStyles()}>{children}</Text>
+          {rightIcon && renderIcon(rightIcon, { marginLeft: children ? 8 : 0 })}
         </>
       )}
     </TouchableOpacity>
@@ -167,21 +142,32 @@ const Button: React.FC<ButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  buttonBase: {},
   primaryShadow: {
     ...Platform.select({
       ios: {
-        shadowColor: "rgba(0, 0, 0, 0.1)",
+        shadowColor: "#F97316",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 6,
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 6,
       },
     }),
   },
-  disabledLook: {},
+  outlineShadow: {
+    ...Platform.select({
+      ios: {
+        shadowColor: "rgba(0, 0, 0, 0.1)",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
 });
 
 export default Button;

@@ -118,8 +118,7 @@ export function Picker({
             style={styles.modalContentContainer}
             onStartShouldSetResponder={() => true}
           >
-            {" "}
-            {}
+
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label || "Select Option"}</Text>
               <TouchableOpacity

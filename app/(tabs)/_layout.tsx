@@ -1,78 +1,95 @@
+"use client";
+
 import { Tabs } from "expo-router";
-import { View } from "react-native";
+import { View, Text, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
-    
     <Tabs
       screenOptions={{
-        headerShown: false,
+        tabBarActiveTintColor: "#f97316",
+        tabBarInactiveTintColor: "#6b7280",
         tabBarStyle: {
-          backgroundColor: "#2D2D2D",
-          borderTopWidth: 0,
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 10,
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#e5e7eb",
+          height: 65 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom - 5 : 5,
+          paddingTop: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 5,
         },
-        tabBarActiveTintColor: "#FF5722",
-        tabBarInactiveTintColor: "#9CA3AF",
         tabBarLabelStyle: {
           fontFamily: "DMSans-Medium",
-          fontSize: 12,
+          fontSize: 11,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              className={`w-12 h-12 rounded-full items-center justify-center `}
+          title: "Expenses",
+          headerShown: false,
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons
+              name={focused ? "list-sharp" : "list-outline"}
+              size={size + 1}
+              color={color}
+            />
+          ),
+          tabBarLabel: ({ focused, color }) => (
+            <Text
+              style={{
+                color,
+                fontFamily: "DMSans-Medium",
+                fontSize: 11,
+                marginTop: Platform.OS === "ios" ? -2 : 0,
+                marginBottom: Platform.OS === "ios" ? 0 : 5,
+              }}
             >
-              <Ionicons
-                name="home"
-                size={24}
-                color={focused ? "#FF5722" : color}
-              />
-            </View>
+              Expenses
+            </Text>
           ),
         }}
       />
       <Tabs.Screen
-        name="vehicles"
+        name="create-expense"
         options={{
-          title: "Vehicles",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="car" size={24} color={color} />
+          title: "Add New",
+          headerShown: false,
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons
+              name={focused ? "add-outline" : "add"}	
+              size={focused ? size + 6 : size + 4}
+              color={focused ? "#f97316" : color}
+            />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="parking-slots"
-        options={{
-          title: "Parking",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="business" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              className={`w-12 h-12 rounded-full items-center justify-cente`}
+          tabBarLabel: ({ focused, color }) => (
+            <Text
+              style={{
+                color: focused ? "#f97316" : color,
+                fontFamily: "DMSans-Medium",
+                fontSize: 11,
+                marginTop: 2,
+              }}
             >
-              <Ionicons
-                name="person"
-                size={24}
-                color={focused ? "#FF5722" : color}
-              />
-            </View>
+              Add New
+            </Text>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="expense/[id]"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
     </Tabs>

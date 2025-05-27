@@ -1,22 +1,13 @@
-"use client"
+// app/index.tsx
+"use client";
+import { View, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useEffect } from "react"
-import { router } from "expo-router"
-import { View, Text } from "react-native"
-
-export default function Index() {
-  useEffect(() => {
-    // Navigate to onboarding after a brief delay
-    const timer = setTimeout(() => {
-      router.replace("/onboarding")
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
+export default function InitialLoadingScreen() {
 
   return (
-    <View className="flex-1 bg-white items-center justify-center">
-      <Text className="text-2xl font-dm-sans-bold text-gray-900">Loading...</Text>
-    </View>
-  )
+    <SafeAreaView className="flex-1 bg-primary-50 justify-center items-center">
+      <ActivityIndicator size="large" color="#FFFFFF" />
+    </SafeAreaView>
+  );
 }
