@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
-  FlatList,
+  ScrollView,
   Text,
   RefreshControl,
   TouchableOpacity,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,10 +25,9 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ExpensesListScreen() {
   const queryClient = useQueryClient();
-  const flatListRef = useRef<FlatList>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const {
@@ -42,11 +40,6 @@ export default function ExpensesListScreen() {
     queryFn: financeApi.getExpenses,
     staleTime: 1000 * 60 * 2,
   });
-
-  const displayedExpenses = allExpenses
-    ? allExpenses.slice(0, displayCount)
-    : [];
-  const hasMore = allExpenses ? allExpenses.length > displayCount : false;
 
   const deleteMutation = useMutation({
     mutationFn: financeApi.deleteExpense,
@@ -84,37 +77,27 @@ export default function ExpensesListScreen() {
     }
   }, [expenseToDelete, deleteMutation]);
 
-  const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore) return;
 
     setIsLoadingMore(true);
 
+    // Simulate loading delay for better UX
     setTimeout(() => {
-      setDisplayCount((prev) => prev + ITEMS_PER_PAGE);
+      setVisibleCount((prev) => prev + ITEMS_PER_PAGE);
       setIsLoadingMore(false);
-    }, 300);
-  }, [isLoadingMore, hasMore]);
+    }, 500);
+  }, [isLoadingMore]);
 
   const handleRefresh = useCallback(() => {
-    setDisplayCount(ITEMS_PER_PAGE);
+    setVisibleCount(ITEMS_PER_PAGE);
     setIsLoadingMore(false);
     refetch();
   }, [refetch]);
 
-  const renderExpenseItem = ({ item }: { item: Expense }) => (
-    <ExpenseListItem expense={item} onDeletePress={handleDeletePress} />
-  );
-
-  const getItemLayout = useCallback(
-    (data: any, index: number) => ({
-      length: 140,
-      offset: 140 * index,
-      index,
-    }),
-    []
-  );
-
-  const keyExtractor = useCallback((item: Expense) => item.id, []);
+  // Get expenses to display
+  const expensesToShow = allExpenses?.slice(0, visibleCount) || [];
+  const hasMore = allExpenses && allExpenses.length > visibleCount;
 
   const renderEmptyState = () => {
     if (isLoading) return null;
@@ -146,61 +129,6 @@ export default function ExpensesListScreen() {
     );
   };
 
-  const renderFooter = () => {
-    if (!allExpenses || allExpenses.length === 0) return null;
-
-    return (
-      <View style={{ minHeight: 120 }}>
-        {hasMore && (
-          <View className="px-4 py-6">
-            <TouchableOpacity
-              onPress={handleLoadMore}
-              disabled={isLoadingMore}
-              className={`py-4 rounded-2xl shadow-lg ${
-                isLoadingMore ? "bg-orange-300" : "bg-orange-500"
-              }`}
-              activeOpacity={0.8}
-            >
-              <View className="flex-row items-center justify-center">
-                {isLoadingMore ? (
-                  <>
-                    <ActivityIndicator size="small" color="white" />
-                    <Text className="text-white font-dm-sans-bold text-lg ml-2">
-                      Loading...
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons
-                      name="chevron-down-circle-outline"
-                      size={24}
-                      color="white"
-                    />
-                    <Text className="text-white font-dm-sans-bold text-lg ml-2">
-                      Load More Expenses
-                    </Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {}
-        <View className="px-4 pb-6" style={{ minHeight: 40 }}>
-          <Text className="text-center text-sm font-dm-sans-medium text-gray-500">
-            Showing {displayedExpenses.length} of {allExpenses.length} expenses
-          </Text>
-          {!hasMore && allExpenses.length > ITEMS_PER_PAGE && (
-            <Text className="text-center text-xs font-dm-sans text-gray-400 mt-1">
-              All expenses loaded
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -219,10 +147,10 @@ export default function ExpensesListScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <Header title="My Expenses" showLogout />
 
-      {}
+      {/* Stats Header */}
       {allExpenses && allExpenses.length > 0 && (
-        <View className="mx-4 mt-4 mb-2" style={{ height: 80 }}>
-          <View className="bg-orange-50 p-4 rounded-2xl border border-orange-100 h-full">
+        <View className="mx-4 mt-4 mb-2">
+          <View className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-sm font-dm-sans-medium text-orange-600">
@@ -240,19 +168,13 @@ export default function ExpensesListScreen() {
         </View>
       )}
 
-      <FlatList
-        ref={flatListRef}
-        data={displayedExpenses}
-        renderItem={renderExpenseItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
+      <ScrollView
+        className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 8,
-          paddingBottom: Platform.OS === "ios" ? 40 : 60,
+          paddingBottom: 100,
         }}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -264,19 +186,75 @@ export default function ExpensesListScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={false}
-        initialNumToRender={20}
-        maxToRenderPerBatch={20}
-        windowSize={10}
-        updateCellsBatchingPeriod={50}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 100,
-        }}
-        legacyImplementation={false}
-      />
+      >
+        {/* Render expenses */}
+        {expensesToShow.length > 0 ? (
+          <>
+            {expensesToShow.map((expense) => (
+              <ExpenseListItem
+                key={expense.id}
+                expense={expense}
+                onDeletePress={handleDeletePress}
+              />
+            ))}
 
-      {}
+            {/* Load More Section */}
+            {hasMore && (
+              <View className="mt-6 mb-4">
+                <TouchableOpacity
+                  onPress={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className={`py-4 rounded-2xl shadow-lg mx-4 ${
+                    isLoadingMore ? "bg-orange-300" : "bg-orange-500"
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  <View className="flex-row items-center justify-center">
+                    {isLoadingMore ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" />
+                        <Text className="text-white font-dm-sans-bold text-lg ml-2">
+                          Loading...
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="chevron-down-circle-outline"
+                          size={24}
+                          color="white"
+                        />
+                        <Text className="text-white font-dm-sans-bold text-lg ml-2">
+                          Load More Expenses
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Stats Footer */}
+            <View className="mt-4 mb-6">
+              <Text className="text-center text-sm font-dm-sans-medium text-gray-500">
+                Showing {expensesToShow.length} of {allExpenses?.length || 0}{" "}
+                expenses
+              </Text>
+              {!hasMore &&
+                allExpenses &&
+                allExpenses.length > ITEMS_PER_PAGE && (
+                  <Text className="text-center text-xs font-dm-sans text-gray-400 mt-1">
+                    All expenses loaded
+                  </Text>
+                )}
+            </View>
+          </>
+        ) : (
+          renderEmptyState()
+        )}
+      </ScrollView>
+
+      {/* Delete Modal */}
       <DeleteModal
         visible={showDeleteModal}
         onClose={() => {
