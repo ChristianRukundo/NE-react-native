@@ -40,18 +40,18 @@ export const expenseSchema = z.object({
   date: z
     .string()
     .min(1, "Date is required.")
-
     .regex(/^\d{4}-\d{2}-\d{2}$/, {
       message: "Date must be in YYYY-MM-DD format.",
     })
     .refine(
       (dateStr) => {
-        const date = new Date(dateStr);
+        const [year, month, day] = dateStr.split("-").map(Number);
+
+        const inputDate = new Date(year, month - 1, day); // Local time at midnight
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to midnight
 
-        today.setHours(0, 0, 0, 0);
-
-        return date.valueOf() && date <= today;
+        return inputDate <= today;
       },
       {
         message: "Please select a valid date (today or past).",
