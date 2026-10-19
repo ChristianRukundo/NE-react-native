@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node api.js && expo start",
-    "build:web": "expo export --platform web",
+    "dev": "node api.js && node init && expo start",
+    "build:web": "node init && expo export --platform web",
     "lint": "expo lint",
     "server": "cd backend && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:all": "node init && concurrently \"npm run dev\" \"npm run server\""
   },
   "dependencies": {
     "@babel/core": "^7.26.0",
